@@ -1,0 +1,4 @@
+R 3
+r 0 j 0 x 1 u 0 F 1 f 0 e 0 q 0 e 1 q 2
+r 1 j 1 x 1 u 0 F 3 f 0 e 0 q 1 e 1 q 1 f 1 e 0 q 1 e 1 q 1 f 2 e 0 q 1 e 1 q 1
+r 2 j 1 x 2 u 1 F 2 f 1 e 0 q 3 e 1 q 1 f 2 e 0 q 0 e 1 q 1

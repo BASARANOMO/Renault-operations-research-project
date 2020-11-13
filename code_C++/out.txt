@@ -1,0 +1,5 @@
+../sujet/petite.csv debug/noRoute.txt -108
+../sujet/petite.csv debug/noRoute.txt 552
+../sujet/petite.csv ../sujet/petite.txt 794
+../sujet/petite.csv ../sujet/petite.txt 2147483647
+../sujet/petite.csv ../sujet/petite.txt 884
