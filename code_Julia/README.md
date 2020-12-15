@@ -1,3 +1,5 @@
+You need first to install necessary Julia packages
+
 ```
 add IJulia
 add JuMP
