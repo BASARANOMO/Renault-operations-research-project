@@ -57,32 +57,19 @@ function lire_route(row::String)::Route
     return Route(r = r, j = j, x = x, u = u, F = F, stops = stops)
 end
 
-function nb_stops(route::Route)::Int
-    return route.F
-end
-
-function nb_km(route::Route, instance::Instance)::Int
-    usines, fournisseurs = instance.usines, instance.fournisseurs
-    path = [
-        usines[route.u].v
-        [fournisseurs[stop.f].v for stop in route.stops]
-    ]
-    return sum(instance.graphe.d[s, t] for (s, t) in zip(path[1:end-1], path[2:end]))
-end
-
-function pickup(route::Route, ; u::Int, e::Int, j::Int)::Int
-    if (route.j == j) && (route.u == u)
+function pickup(route::Route, usine::Usine; e::Int, j::Int)::Int
+    if (route.j == j) && (route.u == usine.u)
         return route.x * sum(stop.Q[e] for stop in route.stops)
     else
         return 0
     end
 end
 
-function delivery(route::Route; f::Int, e::Int, j::Int)::Int
+function delivery(route::Route, fournisseur::Fournisseur; e::Int, j::Int)::Int
     if route.j == j
         d = 0
         for stop in route.stops
-            if stop.f == f
+            if stop.f == fournisseur.f
                 d += route.x * stop.Q[e]
             end
         end

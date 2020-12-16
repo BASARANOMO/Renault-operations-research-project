@@ -12,33 +12,31 @@ function check_load(route::Route, instance::Instance)::Bool
     return true
 end
 
-function check_stock(usine::Usine, s::Matrix{Int})::Bool
+function check_stock(usine::Usine)::Bool
     # Constraint (2)
-    @assert all(0 .<= s)
+    @assert all(0 .<= usine.s)
     return true
 end
 
-function check_stock(fournisseur::Fournisseur, s::Matrix{Int})::Bool
+function check_stock(fournisseur::Fournisseur)::Bool
     # Constraint (4b)
-    @assert all(0 .<= s)
+    @assert all(0 .<= fournisseur.s)
     return true
 end
 
-function feasibility(solution::Solution, instance::Instance)::Bool
+function feasibility(instance::Instance)::Bool
     J, U, F, E = instance.J, instance.U, instance.F, instance.E
 
-    for route in solution.routes
+    for route in instance.routes
         check_length(route)
         check_load(route, instance)
     end
 
-    su, sf = compute_stocks(solution, instance)
-
     for usine in instance.usines
-        check_stock(usine, su[:, usine.u, :])
+        check_stock(usine)
     end
     for fournisseur in instance.fournisseurs
-        check_stock(fournisseur, sf[:, fournisseur.f, :])
+        check_stock(fournisseur)
     end
 
     return true

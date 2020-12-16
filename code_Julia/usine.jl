@@ -9,7 +9,23 @@ struct Usine
     b⁺::Matrix{Int}
     r::Matrix{Int}
 
-    Usine(; u, v, coor, cs, s0, b⁺, r) = new(u, v, coor, cs, s0, b⁺, r)
+    z⁻::Matrix{Int}
+    s::Matrix{Int}
+
+    Usine(; u, v, coor, cs, s0, b⁺, r) =
+        new(u, v, coor, cs, s0, b⁺, r, zeros(Int, size(b⁺)), s0 .+ cumsum(b⁺, dims = 2))
+end
+
+function renumber(usine::Usine; u::Int, v::Int)
+    return Usine(
+        u = u,
+        v = v,
+        coor = usine.coor,
+        cs = usine.cs,
+        s0 = usine.s0,
+        b⁺ = usine.b⁺,
+        r = usine.r,
+    )
 end
 
 function Base.show(io::IO, usine::Usine)
@@ -20,6 +36,7 @@ function Base.show(io::IO, usine::Usine)
     str *= "\n   Stock initial $(usine.s0)"
     str *= "\n   Libération journalière $(usine.b⁺)"
     str *= "\n   Stock maximal journalier $(usine.r)"
+    str *= "\n   Stock journalier $(usine.s)"
     print(io, str)
 end
 
@@ -27,7 +44,7 @@ function lire_usine(row::String, dims::NamedTuple)::Usine
     row_split = split(row, r"\s+")
     u = parse(Int, row_split[2]) + 1
     v = parse(Int, row_split[4]) + 1
-    coor = (parse(Float64, row_split[7]), parse(Float64, row_split[6]))
+    coor = (parse(Float64, row_split[6]), parse(Float64, row_split[7])) # .+ 1e-2*rand()
     k = 8
 
     cs = Vector{Int}(undef, dims.E)

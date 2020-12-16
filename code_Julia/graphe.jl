@@ -4,7 +4,7 @@ using ProgressMeter
 
 struct Graphe
     G::SimpleDiGraph
-    d::SparseMatrixCSC{Int,Int}
+    d::Matrix{Int}
 
     Graphe(; G, d) = new(G, d)
 end
@@ -12,8 +12,8 @@ end
 function Base.show(io::IO, graphe::Graphe)
     n, m = nv(graphe.G), ne(graphe.G)
     str = "\nGraphe pondéré avec $n sommets et $m arcs"
-    str *= "\n   Sommets: " * string(sort(collect(vertices(graphe.G))))
-    str *= "\n   Arcs: " * string(sort([(edge.src, edge.dst) for edge in edges(graphe.G)]))
+    k = min(nv(graphe.G), 10)
+    str *= "\n   Distances ($k x $k): " * string(graphe.d[1:k, 1:k])
     print(io, str)
 end
 
@@ -27,13 +27,11 @@ end
 
 function lire_graphe(rows::Vector{String}, dims::NamedTuple)::Graphe
     G = SimpleDiGraph(dims.U + dims.F)
-    d = spzeros(dims.U + dims.F, dims.U + dims.F)
+    d = zeros(Int, dims.U + dims.F, dims.U + dims.F)
     @showprogress "Reading graph " for row in rows
         a = lire_arc(row)
-        if a.d > eps()
-            add_edge!(G, a.v1, a.v2)
-            d[a.v1, a.v2] = a.d
-        end
+        add_edge!(G, a.v1, a.v2)
+        d[a.v1, a.v2] = a.d
     end
     return Graphe(G = G, d = d)
 end

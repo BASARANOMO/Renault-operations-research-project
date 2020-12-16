@@ -10,7 +10,34 @@ struct Fournisseur
     b⁻::Matrix{Int}
     r::Matrix{Int}
 
-    Fournisseur(; f, v, coor, cs, cexc, s0, b⁻, r) = new(f, v, coor, cs, cexc, s0, b⁻, r)
+    z⁺::Matrix{Int}
+    s::Matrix{Int}
+
+    Fournisseur(; f, v, coor, cs, cexc, s0, b⁻, r) = new(
+        f,
+        v,
+        coor,
+        cs,
+        cexc,
+        s0,
+        b⁻,
+        r,
+        zeros(Int, size(b⁻)),
+        max.(0, s0 .- cumsum(b⁻, dims = 2)),
+    )
+end
+
+function renumber(fournisseur::Fournisseur; f::Int, v::Int)
+    return Fournisseur(
+        f = f,
+        v = v,
+        coor = fournisseur.coor,
+        cs = fournisseur.cs,
+        cexc = fournisseur.cexc,
+        s0 = fournisseur.s0,
+        b⁻ = fournisseur.b⁻,
+        r = fournisseur.r,
+    )
 end
 
 function Base.show(io::IO, fournisseur::Fournisseur)
@@ -22,6 +49,7 @@ function Base.show(io::IO, fournisseur::Fournisseur)
     str *= "\n   Stock initial $(fournisseur.s0)"
     str *= "\n   Consommation journalière $(fournisseur.b⁻)"
     str *= "\n   Stock maximal journalier $(fournisseur.r)"
+    str *= "\n   Stock journalier $(fournisseur.s)"
     print(io, str)
 end
 
@@ -29,7 +57,7 @@ function lire_fournisseur(row::String, dims::NamedTuple)::Fournisseur
     row_split = split(row, r"\s+")
     f = parse(Int, row_split[2]) + 1
     v = parse(Int, row_split[4]) + 1
-    coor = (parse(Float64, row_split[7]), parse(Float64, row_split[6]))
+    coor = (parse(Float64, row_split[6]), parse(Float64, row_split[7])) # .+ 1e-2*rand()
     k = 8
 
     cs = Vector{Int}(undef, dims.E)

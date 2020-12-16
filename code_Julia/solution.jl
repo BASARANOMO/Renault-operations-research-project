@@ -1,21 +1,49 @@
-mutable struct Solution
-    R::Int
-    routes::Vector{Route}
+function update_stocks!(usine::Usine, routes::Vector{Route})
+    E, J = size(usine.s)
 
-    Solution(; R, routes) = new(R, routes)
-end
+    for e = 1:E, j = 1:J
+        usine.z⁻[e, j] = 0
+        for route in routes
+            usine.z⁻[e, j] += pickup(route, usine, e = e, j = j)
+        end
+    end
 
-function Base.show(io::IO, solution::Solution)
-    str = "Solution"
-    str *= "\n   Nb de routes: $(solution.R)"
-    str *= "\n"
-    print(io, str)
-    for route in solution.routes
-        println(io, route)
+    for e = 1:E, j = 1:J
+        usine.s[e, j] =
+            (j == 1 ? usine.s0[e] : usine.s[e, j-1]) + usine.b⁺[e, j] - usine.z⁻[e, j]
     end
 end
 
-function lire_solution(path::String)
+function update_stocks!(fournisseur::Fournisseur, routes::Vector{Route})
+    E, J = size(fournisseur.s)
+
+    for e = 1:E, j = 1:J
+        fournisseur.z⁺[e, j] = 0
+        for route in routes
+            fournisseur.z⁺[e, j] += delivery(route, fournisseur, e = e, j = j)
+        end
+    end
+
+    for e = 1:E, j = 1:J
+        fournisseur.s[e, j] =
+            max(
+                0,
+                (j == 1 ? fournisseur.s0[e] : fournisseur.s[e, j-1]) - fournisseur.b⁻[e, j],
+            ) + fournisseur.z⁺[e, j]
+    end
+end
+
+
+function update_stocks!(instance::Instance, routes::Vector{Route})
+    for usine in instance.usines
+        update_stocks!(usine, routes)
+    end
+    for fournisseur in instance.fournisseurs
+        update_stocks!(fournisseur, routes)
+    end
+end
+
+function lire_solution(instance::Instance, path::String)::Instance
     sol = open(path) do file
         readlines(file)
     end
@@ -23,48 +51,10 @@ function lire_solution(path::String)
     R = parse(Int, split(sol[1], r"\s+")[2])
     routes = [lire_route(sol[1+r]) for r = 1:R]
 
-    return Solution(R = R, routes = routes)
-end
-
-function compute_stocks(solution::Solution, instance::Instance)
-    J, U, F, E = instance.J, instance.U, instance.F, instance.E
-
-    # Constraints (10.a) and (10.b)
-
-    z⁻ = zeros(Int, E, U, J)
-    z⁺ = zeros(Int, E, F, J)
-
-    for e = 1:E, j = 1:J
-        for route in solution.routes
-            for u = 1:U
-                z⁻[e, u, j] += pickup(route, u = u, e = e, j = j)
-            end
-            for f = 1:F
-                z⁺[e, f, j] += delivery(route, f = f, e = e, j = j)
-            end
-        end
-    end
-
-    # Constraints (1) and (5)
-
-    b⁺ = collect(instance.usines[u].b⁺[e, j] for e = 1:E, u = 1:U, j = 1:J)
-    b⁻ = collect(instance.fournisseurs[f].b⁻[e, j] for e = 1:E, f = 1:F, j = 1:J)
-
-    su0 = collect(instance.usines[u].s0[e] for e = 1:E, u = 1:U)
-    sf0 = collect(instance.fournisseurs[f].s0[e] for e = 1:E, f = 1:F)
-
-    su = Array{Int,3}(undef, E, U, J)
-    sf = Array{Int,3}(undef, E, F, J)
-
-    for e = 1:E, j = 1:J
-        for u = 1:U
-            su[e, u, j] = (j == 1 ? su0[e, u] : su[e, u, j-1]) + b⁺[e, u, j] - z⁻[e, u, j]
-        end
-        for f = 1:F
-            sf[e, f, j] =
-                max(0, (j == 1 ? sf0[e, f] : sf[e, f, j-1]) - b⁻[e, f, j]) + z⁺[e, f, j]
-        end
-    end
-
-    return su, sf
+    solved_instance = deepcopy(instance)
+    solved_instance.R = R
+    solved_instance.routes = routes
+    update_stocks!(solved_instance, routes)
+    
+    return solved_instance
 end
