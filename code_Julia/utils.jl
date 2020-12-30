@@ -81,8 +81,8 @@ function create_graph(G_original, dims, us, fs, J_init, J_fin, e)
             
             if j < J
                 # connect each f stock to f consommation of the next day
-                add_edge!(G, (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * f, j * (3 * U + 4 * F) + 3 * U + 4 * f)
-                capacity[(j - 1) * (3 * U + 4 * F) + 3 * U + 4 * f, j * (3 * U + 4 * F) + 3 * U + 4 * f] += Inf
+                add_edge!(G, (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * f + 1, j * (3 * U + 4 * F) + 3 * U + 4 * f)
+                capacity[(j - 1) * (3 * U + 4 * F) + 3 * U + 4 * f + 1, j * (3 * U + 4 * F) + 3 * U + 4 * f] += Inf
                 
                 # connect two additional vertices to f day j+1
                 add_edge!(G, (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 2, 
@@ -229,10 +229,12 @@ function read_flow(flow, U, F, J_init, J_fin)
     # create a U * F * J matrix (for a given e) for dispatching
     # create a U * J matrix (for a given e) for stockage
     # create a F * J matrix (for a given e) for stockage
+    # create a F * J matrix (for a given e) for carton consommation
     J = J_fin - J_init + 1
     dispatch = zeros(U, F, J)
     stock_U = zeros(U, J)
     stock_F = zeros(F, J)
+    consom_carton = zeros(F, J)
     for j = 1:J
         for u = 1:U
             for f = 1:F
@@ -251,8 +253,10 @@ function read_flow(flow, U, F, J_init, J_fin)
                 (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 2] + 
             flow[(j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1,
                 (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 3]
+            
+            consom_carton[f, j] = flow[size(flow)[1], (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * f]
         end
     end
     
-    return dispatch, stock_U, stock_F
+    return dispatch, consom_carton, stock_U, stock_F
 end
