@@ -81,8 +81,8 @@ function create_graph(G_original, dims, us, fs, J_init, J_fin, e)
             
             if j < J
                 # connect each f stock to f consommation of the next day
-                add_edge!(G, (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * f + 1, j * (3 * U + 4 * F) + 3 * U + 4 * f)
-                capacity[(j - 1) * (3 * U + 4 * F) + 3 * U + 4 * f + 1, j * (3 * U + 4 * F) + 3 * U + 4 * f] += Inf
+                add_edge!(G, (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1, j * (3 * U + 4 * F) + 3 * U + 4 * f)
+                capacity[(j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1, j * (3 * U + 4 * F) + 3 * U + 4 * f] += Inf
                 
                 # connect two additional vertices to f day j+1
                 add_edge!(G, (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 2, 
