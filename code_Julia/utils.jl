@@ -1,9 +1,10 @@
-function create_graph(G_original, dims, us, fs, J_init, J_fin, e)
+function create_graph(G_original, dims, us, fs, es, J_init, J_fin, e)
     U = dims.U
     F = dims.F
     J = J_fin - J_init + 1
     # J = dims.J
     cost_dispatch = dims.γ
+    L = dims.L
     
     G = SimpleDiGraph((3 * U + 4 * F) * J + U + F + 1)
     capacity = zeros((3 * U + 4 * F) * J + U + F + 1, 
@@ -19,7 +20,7 @@ function create_graph(G_original, dims, us, fs, J_init, J_fin, e)
                 capacity[(j - 1) * (3 * U + 4 * F) + 3 * (u - 1) + 1, 
                     (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1] += Inf
                 cost_mat[(j - 1) * (3 * U + 4 * F) + 3 * (u - 1) + 1, 
-                    (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1] += G_original.d[u, U + f] * cost_dispatch + dims.ccam + dims.cstop
+                    (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1] += (G_original.d[u, U + f] * cost_dispatch + dims.ccam + dims.cstop) / L * es[e].l
             end
         end
         
@@ -228,8 +229,8 @@ function min_cost_flow(g, node_demand, edge_capacity, edge_cost, optimizer)
     
 end
 
-function run_opt(g, dims, us, fs, J_init, J_fin, e, optimizer)
-    g, capacity, cost_mat = create_graph(g, dims, us, fs, J_init, J_fin, e)
+function run_opt(g, dims, us, fs, es, J_init, J_fin, e, optimizer)
+    g, capacity, cost_mat = create_graph(g, dims, us, fs, es, J_init, J_fin, e)
     demand = set_demand(dims, us, fs, J_init, J_fin, e)
     flow = min_cost_flow(g, demand, capacity, cost_mat, optimizer)
     return flow
@@ -285,14 +286,14 @@ function set_us_fs(dims, us, fs, stock_U, stock_F, J_init, J_fin, e)
     end
 end
 
-function solve_period(g, dims, us, fs, J_init, J_fin, optimizer)
+function solve_period(g, dims, us, fs, es, J_init, J_fin, optimizer)
     U = dims.U
     F = dims.F
     E = dims.E
     J = J_fin - J_init + 1
     disp_all_types = zeros(E, U, F, J)
     for e = 1:E # for each e
-        flow = run_opt(g, dims, us, fs, J_init, J_fin, e, optimizer)
+        flow = run_opt(g, dims, us, fs, es, J_init, J_fin, e, optimizer)
         disp, consom_carton, stock_U, stock_F = read_flow(flow, U, F, J_init, J_fin)
         set_us_fs(dims, us, fs, stock_U, stock_F, J_init, J_fin, e)
         disp_all_types[e, :, :, :] = disp
