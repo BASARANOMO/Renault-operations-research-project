@@ -19,7 +19,7 @@ function create_graph(G_original, dims, us, fs, J_init, J_fin, e)
                 capacity[(j - 1) * (3 * U + 4 * F) + 3 * (u - 1) + 1, 
                     (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1] += Inf
                 cost_mat[(j - 1) * (3 * U + 4 * F) + 3 * (u - 1) + 1, 
-                    (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1] += G_original.d[u, U + f] * cost_dispatch
+                    (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1] += G_original.d[u, U + f] * cost_dispatch + dims.ccam + dims.cstop
             end
         end
         
