@@ -1,9 +1,10 @@
-function create_graph(G_original, dims, us, fs, J_init, J_fin, e)
+function create_graph(G_original, dims, us, fs, es, J_init, J_fin, e)
     U = dims.U
     F = dims.F
     J = J_fin - J_init + 1
     # J = dims.J
     cost_dispatch = dims.γ
+    L = dims.L
     
     G = SimpleDiGraph((3 * U + 4 * F) * J + U + F + 1)
     capacity = zeros((3 * U + 4 * F) * J + U + F + 1, 
@@ -19,7 +20,7 @@ function create_graph(G_original, dims, us, fs, J_init, J_fin, e)
                 capacity[(j - 1) * (3 * U + 4 * F) + 3 * (u - 1) + 1, 
                     (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1] += Inf
                 cost_mat[(j - 1) * (3 * U + 4 * F) + 3 * (u - 1) + 1, 
-                    (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1] += G_original.d[u, U + f] * cost_dispatch
+                    (j - 1) * (3 * U + 4 * F) + 3 * U + 4 * (f - 1) + 1] += (G_original.d[u, U + f] * cost_dispatch + dims.ccam + dims.cstop) / L * es[e].l
             end
         end
         
@@ -138,12 +139,22 @@ function set_demand(dims, us, fs, J_init, J_fin, e) # b parameter
     end
     
     # for initial stock
-    for u = 1:U
-        demand[J * (3 * U + 4 * F) + u] -= us[u].s0[e]
-    end
+    if J_init <= 1
+        for u = 1:U
+            demand[J * (3 * U + 4 * F) + u] -= us[u].s0[e]
+        end
     
-    for f = 1:F
-        demand[J * (3 * U + 4 * F) + U + f] -= fs[f].s0[e]
+        for f = 1:F
+            demand[J * (3 * U + 4 * F) + U + f] -= fs[f].s0[e]
+        end
+    else
+        for u = 1:U
+            demand[J * (3 * U + 4 * F) + u] -= us[u].s[e, J_init - 1]
+        end
+        
+        for f = 1:F
+            demand[J * (3 * U + 4 * F) + U + f] -= fs[f].s[e, J_init - 1]
+        end
     end
     
     println(sum(demand))
@@ -178,7 +189,7 @@ function min_cost_flow(g, node_demand, edge_capacity, edge_cost, optimizer)
         i += 1
     end
     
-    @variable(m, 0 <= f[i = 1:ne(g)] <= edge_capacity[idx_dict[i][1], idx_dict[i][2]])
+    @variable(m, 0 <= f[i = 1:ne(g)] <= edge_capacity[idx_dict[i][1], idx_dict[i][2]], Int)
     @objective(m, Min, sum(f[i] * edge_cost[idx_dict[i][1], idx_dict[i][2]] for i = 1:ne(g)))
     # @variable(m, 0 <= f[i=vtxs, j=vtxs; (i,j) in lg.edges(g)] <= edge_capacity[i, j])
     # @objective(m, Min, sum(f[src(e),dst(e)] * edge_cost[src(e), dst(e)] for e in lg.edges(g)))
@@ -218,8 +229,8 @@ function min_cost_flow(g, node_demand, edge_capacity, edge_cost, optimizer)
     
 end
 
-function run_opt(g, dims, us, fs, J_init, J_fin, e, optimizer)
-    g, capacity, cost_mat = create_graph(g, dims, us, fs, J_init, J_fin, e)
+function run_opt(g, dims, us, fs, es, J_init, J_fin, e, optimizer)
+    g, capacity, cost_mat = create_graph(g, dims, us, fs, es, J_init, J_fin, e)
     demand = set_demand(dims, us, fs, J_init, J_fin, e)
     flow = min_cost_flow(g, demand, capacity, cost_mat, optimizer)
     return flow
@@ -259,4 +270,33 @@ function read_flow(flow, U, F, J_init, J_fin)
     end
     
     return dispatch, consom_carton, stock_U, stock_F
+end
+
+function set_us_fs(dims, us, fs, stock_U, stock_F, J_init, J_fin, e)
+    U = dims.U
+    F = dims.F
+    J = J_fin - J_init + 1
+    for j = 1:J
+        for u = 1:U
+            us[u].s[e, j] = stock_U[u, j]
+        end
+        for f = 1:F
+            fs[f].s[e, j] = stock_F[f, j]
+        end
+    end
+end
+
+function solve_period(g, dims, us, fs, es, J_init, J_fin, optimizer)
+    U = dims.U
+    F = dims.F
+    E = dims.E
+    J = J_fin - J_init + 1
+    disp_all_types = zeros(E, U, F, J)
+    for e = 1:E # for each e
+        flow = run_opt(g, dims, us, fs, es, J_init, J_fin, e, optimizer)
+        disp, consom_carton, stock_U, stock_F = read_flow(flow, U, F, J_init, J_fin)
+        set_us_fs(dims, us, fs, stock_U, stock_F, J_init, J_fin, e)
+        disp_all_types[e, :, :, :] = disp
+    end
+    return disp_all_types, us, fs
 end
