@@ -284,6 +284,7 @@ function set_us_fs(dims, us, fs, stock_U, stock_F, J_init, J_fin, e)
             fs[f].s[e, j] = stock_F[f, j]
         end
     end
+    return us, fs
 end
 
 function solve_period(g, dims, us, fs, es, J_init, J_fin, optimizer)
@@ -295,7 +296,7 @@ function solve_period(g, dims, us, fs, es, J_init, J_fin, optimizer)
     for e = 1:E # for each e
         flow = run_opt(g, dims, us, fs, es, J_init, J_fin, e, optimizer)
         disp, consom_carton, stock_U, stock_F = read_flow(flow, U, F, J_init, J_fin)
-        set_us_fs(dims, us, fs, stock_U, stock_F, J_init, J_fin, e)
+        us, fs = set_us_fs(dims, us, fs, stock_U, stock_F, J_init, J_fin, e)
         disp_all_types[e, :, :, :] = disp
     end
     return disp_all_types, us, fs
